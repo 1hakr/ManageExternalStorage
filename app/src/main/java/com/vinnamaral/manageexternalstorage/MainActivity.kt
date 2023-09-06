@@ -1,11 +1,12 @@
 package com.vinnamaral.manageexternalstorage
 
 import android.Manifest
+import android.app.UiModeManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
@@ -13,17 +14,18 @@ import android.util.Log
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import java.io.File
-import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
     // UI Views
     private lateinit var folderNameEt:EditText
     private lateinit var createFolderBtn: MaterialButton
+    private var isWatchMode: Boolean = false
 
     private companion object {
         // PERMISSION request constant, assign any value
@@ -34,6 +36,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        isWatchMode = (getSystemService(UI_MODE_SERVICE)
+                as UiModeManager).currentModeType == Configuration.UI_MODE_TYPE_WATCH
 
         // Init UI Views
         folderNameEt = findViewById(R.id.folderNameEt)
@@ -72,7 +77,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !isWatchMode) {
             // Android is 11 (R) or above
             try {
                 Log.d(TAG, "requestPermission: try")
@@ -87,8 +92,7 @@ class MainActivity : AppCompatActivity() {
                 intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
                 storageActivityResultLauncher.launch(intent)
             }
-        }
-        else {
+        }  else {
             //Android is below 11 (R)
             ActivityCompat.requestPermissions(this,
                 arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE),
@@ -100,7 +104,7 @@ class MainActivity : AppCompatActivity() {
     private val storageActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         Log.d(TAG, "storageActivityResultLauncher: ")
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !isWatchMode) {
             if (Environment.isExternalStorageManager()) {
                 Log.d(TAG, "storageActivityResultLauncher: Manage External Storage Permission is granted")
                 createFolder()
@@ -121,7 +125,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !isWatchMode) {
             //Android is 11 (R) or above
             Environment.isExternalStorageManager()
         }
